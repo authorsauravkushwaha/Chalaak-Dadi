@@ -26,6 +26,24 @@ test("health reports the ephemeral (non-persistent) demo store honestly", async 
   assert.equal(h.persistent, false);
 });
 
+test("dashboard statistics match the saved call and entity records", async () => {
+  const calls = await db.listCalls();
+  const entities = calls.flatMap((call) => call.entities);
+  const dashboard = await db.stats();
+  const byCategory = {};
+  for (const call of calls) byCategory[call.category] = (byCategory[call.category] || 0) + 1;
+
+  assert.equal(dashboard.totalCalls, calls.length);
+  assert.equal(dashboard.liveCalls, calls.filter((call) => call.status === "live").length);
+  assert.equal(dashboard.totalEngagementSec, calls.reduce((sum, call) => sum + Number(call.duration_sec || 0), 0));
+  assert.equal(dashboard.upiCount, entities.filter((entity) => entity.type === "UPI_ID").length);
+  assert.equal(dashboard.bankIndicators, entities.filter((entity) => ["BANK_ACCOUNT", "IFSC"].includes(entity.type)).length);
+  assert.equal(dashboard.totalEntities, entities.length);
+  assert.equal(dashboard.avgRisk, Math.round(calls.reduce((sum, call) => sum + Number(call.risk_score || 0), 0) / calls.length));
+  assert.deepEqual(dashboard.byCategory, byCategory);
+  assert.equal(dashboard.recentEntities.length, Math.min(entities.length, 8));
+});
+
 test("create → entity (idempotent) → end (idempotent) → report flow", async () => {
   const { call, duplicate } = await db.createCall({ category: "Digital Arrest", caller: "+91 90000 00000 (fictional)", client_event_id: "test-event-1", source: "demo" });
   assert.equal(duplicate, false);

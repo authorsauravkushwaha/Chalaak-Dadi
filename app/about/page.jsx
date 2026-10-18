@@ -1,51 +1,79 @@
 export const metadata = { title: "About & Methodology — Chalaak Dadi" };
 
-const S = ({ children }) => <div className="card" style={{ marginBottom: 16 }}>{children}</div>;
+const sections = [
+  {
+    title: "What this prototype demonstrates",
+    content: <p>Chalaak Dadi is a scam-awareness and intelligence-review concept. A fictional caller and a scripted Dadi persona play through a sample conversation; simple extraction rules highlight values such as UPI IDs, phone numbers, bank-account indicators, amounts, and links. A reviewer can inspect the saved call record and prepare an unsubmitted complaint draft.</p>,
+  },
+  {
+    title: "How the demonstration works",
+    content: (
+      <ol>
+        <li><b>Select a scenario.</b> Choose one of the fictional scripts on Live Intelligence.</li>
+        <li><b>Follow the transcript.</b> Lines play in sequence. The engagement timer measures elapsed time in the browser demonstration only.</li>
+        <li><b>Review pattern matches.</b> Extracted values are attached to the call record with evidence and a confidence value.</li>
+        <li><b>Prepare a draft.</b> A saved draft can be inspected, copied, downloaded, and marked reviewed. It is never submitted by the application.</li>
+      </ol>
+    ),
+  },
+  {
+    title: "Method and limits",
+    content: (
+      <ul>
+        <li>All built-in callers, dialogue, phone numbers, account details, and payment handles are fictional examples.</li>
+        <li>No real calls, audio, AI voice, telephony provider, police contact, account freeze, or complaint filing is connected.</li>
+        <li>Entity extraction uses transparent pattern rules. It can miss spoken or unusual formats and can produce false matches.</li>
+        <li>Risk values in the built-in scenarios are illustrative labels, not validated or predictive assessments. A partial transcript may retain its scenario's assigned value.</li>
+        <li>An extracted detail is an indicator for human verification, not proof of guilt.</li>
+      </ul>
+    ),
+  },
+  {
+    title: "Data handling",
+    content: (
+      <ul>
+        <li>The dashboard's storage notice and <code>/api/health</code> describe the active persistence mode.</li>
+        <li>Without PostgreSQL configuration, demo records use the app's local or temporary demo storage and may not be durable in hosted environments.</li>
+        <li>Do not enter personal or financial details from real victims into this prototype. Any real-world use would require consent, legal review, access controls, and a retention policy.</li>
+        <li>Ingestion endpoints and database behavior are documented in the repository's API and persistence guides.</li>
+      </ul>
+    ),
+  },
+];
 
 export default function About() {
   return (
-    <>
-      <h1>ℹ️ About &amp; Methodology</h1>
-      <p className="sub">Chalaak Dadi — Scam Intelligence Console · Team <b>SK Nexora</b> · Srijan Setu 2026</p>
+    <div className="page-stack about-page">
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow"><span className="eyebrow-mark" />The idea and its boundaries</p>
+          <h1>About &amp; methodology</h1>
+          <p className="page-lede">A transparent prototype for exploring how scripted engagement and rule-based indicator review could fit into a defensive workflow.</p>
+        </div>
+        <span className="pill demo page-heading-badge">PROTOTYPE · FICTIONAL DATA</span>
+      </section>
 
-      <S><h2>🎯 The problem</h2>
-        <p>India loses thousands of crores to phone-based financial fraud — “digital arrest”, fake customs/parcel, SIM-KYC and OTP scams. Victims are often elderly, Hindi-speaking, and pressured to act within minutes. While a scammer is busy talking, they cannot scam someone else — and every minute of conversation can reveal UPI IDs, phone numbers and bank accounts that investigators need.</p></S>
+      <section className="about-banner card">
+        <div><span className="eyebrow">Designed for review, not automation</span><h2>Scripted by design. Transparent by default.</h2></div>
+        <p>Every value shown by the built-in scenarios is fictional. A person remains responsible for checking the evidence and deciding whether to take any next step.</p>
+      </section>
 
-      <S><h2>👥 Intended users</h2>
-        <p>Cyber-cell analysts and volunteers reviewing suspected scam calls, community awareness teams, hackathon judges evaluating the concept, and (in future) telecom/bank fraud desks receiving verified indicator feeds.</p></S>
+      <div className="methodology-grid">
+        {sections.map((section, index) => (
+          <section className={`card methodology-card methodology-card-${index + 1}`} key={section.title}>
+            <div className="methodology-number">0{index + 1}</div>
+            <h2>{section.title}</h2>
+            {section.content}
+          </section>
+        ))}
+      </div>
 
-      <S><h2>⚙️ How the system works</h2>
-        <ol>
-          <li><b>Engage:</b> A sweet, slightly forgetful Hindi-speaking “Dadi” voice persona keeps the suspected caller talking (in this prototype: a clearly-labelled simulated Demo Adapter — no real telephony).</li>
-          <li><b>Extract:</b> The conversation is scanned for indicators — UPI IDs, phone numbers, bank accounts, IFSC codes, amounts and links — each stored with confidence and the exact evidence line.</li>
-          <li><b>Display:</b> The Live Intelligence console streams the transcript, fires entity alerts, runs the engagement timer, and the Dashboard aggregates categories, risk and captured entities from the database.</li>
-          <li><b>Draft:</b> A structured complaint draft is generated from recorded evidence for a human to review, copy, download, and — only if they choose — file on <b>cybercrime.gov.in</b> or helpline <b>1930</b>.</li>
-        </ol></S>
+      <section className="card help-card">
+        <div><p className="eyebrow">If someone is facing fraud</p><h2>Use official channels</h2><p>For a cyber-fraud emergency in India, call the national helpline or use the official portal.</p></div>
+        <div className="rowflex"><a className="btn" href="tel:1930">Call 1930</a><a className="btn btn-outline" href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">Visit cybercrime.gov.in <span aria-hidden="true">↗</span></a></div>
+      </section>
 
-      <S><h2>⚠️ Limitations (honest list)</h2>
-        <ul>
-          <li>The voice agent, calls and transcripts in this build are <b>simulated</b>; no real scam caller is engaged.</li>
-          <li>Entity extraction is rule-based (patterns), not a trained ML model — it can miss cleverly-spoken details (“nine eight one…”) and can false-positive.</li>
-          <li>Risk scores in demo records are illustrative, assigned per scenario.</li>
-          <li>Extracted details are <b>allegations/indicators</b>. Only lawful investigation can establish guilt.</li>
-          <li>Without a configured PostgreSQL database (<code>DATABASE_URL</code>), records on Vercel live in <b>temporary server memory</b> and may reset to the 3 seed cases when instances recycle. The Dashboard banner and <code>/api/health</code> always show which mode is active — see <code>docs/PERSISTENCE.md</code> in the repository for the free Neon setup.</li>
-        </ul></S>
-
-      <S><h2>🔒 Privacy safeguards</h2>
-        <ul>
-          <li>Fictional test data by default; never enter real victims’ personal or financial details into the demo.</li>
-          <li>Secrets (database URL, ingestion secret) live only in server-side environment variables — never in browser code or git.</li>
-          <li>Ingestion APIs reject unauthenticated requests; duplicate events/entities are ignored (idempotent).</li>
-          <li>Data minimisation: the schema stores only what the workflow needs, and every report is labelled unsubmitted.</li>
-        </ul></S>
-
-      <S><h2>🚀 Future deployment plan</h2>
-        <ol>
-          <li>Connect a real telephony + speech pipeline (STT/TTS with a Hindi voice) behind the same API contracts, with consent and legal review.</li>
-          <li>Move extraction to an ML/NLP service, add speaker diarisation and language detection.</li>
-          <li>Add analyst roles/login, indicator sharing with banks/telecom under due process, and deployment on managed PostgreSQL with backups.</li>
-        </ol>
-        <p className="small muted">This prototype never claims to have contacted police, frozen an account, verified criminal activity, or filed a report.</p></S>
-    </>
+      <p className="about-credit">Chalaak Dadi · Team <b>SK Nexora</b> · Srijan Setu 2026</p>
+    </div>
   );
 }
