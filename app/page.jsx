@@ -10,19 +10,29 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
   const [auto, setAuto] = useState(true);
   const timer = useRef(null);
+  const requestSeq = useRef(0);
+
+  // Debounce search typing so each keystroke doesn't fire two API calls.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
 
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current;
     try {
-      const qs = new URLSearchParams({ q, category, status });
+      const qs = new URLSearchParams({ q: debouncedQ, category, status });
       const [s, c] = await Promise.all([api("/api/stats"), api(`/api/calls?${qs}`)]);
+      if (seq !== requestSeq.current) return; // a newer refresh already won
       setStats(s); setCalls(c.calls); setError("");
-    } catch (e) { setError(e.message); }
-    setLoading(false);
-  }, [q, category, status]);
+    } catch (e) { if (seq === requestSeq.current) setError(e.message); }
+    if (seq === requestSeq.current) setLoading(false);
+  }, [debouncedQ, category, status]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -39,6 +49,13 @@ export default function Dashboard() {
       <p className="sub">Chalaak Dadi keeps suspected scammers talking to a sweet Hindi-speaking Dadi voice agent — while this console quietly captures UPI IDs, phone numbers and bank indicators for human review. <b>सावधान रहें, सतर्क रहें।</b></p>
 
       {error && <div className="err">⚠️ {error} <button className="btn sm ghost" onClick={load}>Retry</button></div>}
+
+      {stats && !stats.persistent && (
+        <div className="warn">💾 <b>Temporary demo storage:</b> {stats.storageDetail} <a href="/api/health" target="_blank" rel="noreferrer">Check storage status →</a></div>
+      )}
+      {stats && stats.persistent && (
+        <div className="ok">💾 <b>Persistent storage active:</b> {stats.storageDetail}</div>
+      )}
 
       {loading && !stats ? <div className="skeleton">Loading intelligence…</div> : stats && (
         <>

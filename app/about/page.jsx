@@ -28,6 +28,7 @@ export default function About() {
           <li>Entity extraction is rule-based (patterns), not a trained ML model — it can miss cleverly-spoken details (“nine eight one…”) and can false-positive.</li>
           <li>Risk scores in demo records are illustrative, assigned per scenario.</li>
           <li>Extracted details are <b>allegations/indicators</b>. Only lawful investigation can establish guilt.</li>
+          <li>Without a configured PostgreSQL database (<code>DATABASE_URL</code>), records on Vercel live in <b>temporary server memory</b> and may reset to the 3 seed cases when instances recycle. The Dashboard banner and <code>/api/health</code> always show which mode is active — see <code>docs/PERSISTENCE.md</code> in the repository for the free Neon setup.</li>
         </ul></S>
 
       <S><h2>🔒 Privacy safeguards</h2>
