@@ -50,7 +50,7 @@ export default function LanguageGate({ currentLang }) {
     <div className="gate-overlay" role="dialog" aria-modal="true" aria-label="Choose your language">
       <div className="gate-card">
         <span className="gate-glow" aria-hidden="true" />
-        <img src="/dadi-hero.png" alt="" className="gate-dadi" aria-hidden="true" />
+        <img src="/dadi-hero.jpg" alt="" className="gate-dadi" aria-hidden="true" />
         <p className="gate-eyebrow">Chalaak Dadi · चतुर दादी · ਚਤੁਰ ਦਾਦੀ</p>
         <h2 className="gate-title">
           <span lang="en">Choose your language</span>

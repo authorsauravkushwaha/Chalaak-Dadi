@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
       canonical: `/${lang}`,
       languages: { en: "/en", hi: "/hi", pa: "/pa", "x-default": "/en" },
     },
-    openGraph: { title, description, images: ["/dadi-hero.png"] },
+    openGraph: { title, description, images: ["/dadi-hero.jpg"] },
   };
 }
 
@@ -114,7 +114,7 @@ export default async function Landing({ params }) {
 
             <Reveal variant="right" className="hero-figure" delay={150}>
               <div className="figure-halo" aria-hidden="true" />
-              <Image src="/dadi-hero.png" alt="" width={1024} height={1536} priority fetchPriority="high" sizes="(max-width: 900px) 0px, 400px" />
+              <Image src="/dadi-hero.jpg" alt="" width={1024} height={1536} priority fetchPriority="high" sizes="(max-width: 900px) 0px, 400px" />
               <div className="figure-tag figure-tag-1">
                 <b>{t(lang, "dadi.step1.tag")}</b>
                 <small>{t(lang, "dadi.step1.title")}</small>
