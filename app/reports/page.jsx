@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, copyText, downloadText } from "../../lib/client.js";
@@ -13,54 +14,85 @@ export default function Reports() {
   const [open, setOpen] = useState(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(q), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(timer);
   }, [q]);
 
   const load = useCallback(async () => {
-    try { const d = await api(`/api/reports?q=${encodeURIComponent(debouncedQ)}`); setReports(d.reports); setError(""); }
-    catch (e) { setError(e.message); }
+    try {
+      const result = await api(`/api/reports?q=${encodeURIComponent(debouncedQ)}`);
+      setReports(result.reports);
+      setError("");
+    } catch (loadError) {
+      setError(loadError.message);
+    }
     setLoading(false);
   }, [debouncedQ]);
+
   useEffect(() => { load(); }, [load]);
 
-  async function toggleStatus(r) {
-    const next = r.status === "Reviewed" ? "Draft — Unsubmitted" : "Reviewed";
-    try { await api("/api/reports", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: r.id, status: next }) }); setMsg(`✅ Status updated to "${next}".`); load(); }
-    catch (e) { setError(e.message); }
+  async function toggleStatus(report) {
+    const nextStatus = report.status === "Reviewed" ? "Draft — Unsubmitted" : "Reviewed";
+    try {
+      await api("/api/reports", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: report.id, status: nextStatus }),
+      });
+      setMsg(`Status updated to “${nextStatus}”.`);
+      load();
+    } catch (statusError) {
+      setError(statusError.message);
+    }
   }
 
   return (
-    <>
-      <h1>📄 Reports — Complaint Drafts</h1>
-      <p className="sub">Every draft here is <b>unsubmitted</b> until a human reviews it and files it on the official portal. Nothing on this page has been sent to police or any bank.</p>
-      <div className="warn">⚠️ <b>Before importing or using any real transcript:</b> remove personal data of real victims, confirm you have consent/lawful basis, and verify every indicator. This prototype stores fictional demo data by default.</div>
-      {error && <div className="err">⚠️ {error}</div>}
-      {msg && <div className="ok">{msg}</div>}
-
-      <div className="rowflex" style={{ margin: "16px 0" }}>
-        <input placeholder="🔍 Search reports…" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: "1 1 260px" }} />
-        <a className="btn green" href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">🌐 Open Official Portal</a>
-        <Link className="btn ghost" href="/">← Dashboard</Link>
-      </div>
-
-      {loading ? <div className="skeleton">Loading reports…</div> : reports.length === 0 ? (
-        <div className="skeleton">No reports found{q && <> for “{q}”</>}.<br /><span className="small">Open any call from the Dashboard and press <b>Generate &amp; Save Draft</b> to create the first one.</span></div>
-      ) : reports.map((r) => (
-        <div className="card" key={r.id} style={{ marginBottom: 14 }}>
-          <div className="spread">
-            <div><b>{r.title}</b><br /><span className="small muted">{new Date(r.created_at).toLocaleString("en-IN")} · <Link href={`/calls/${r.call_id}`}>View source call →</Link></span></div>
-            <span className={`pill ${r.status === "Reviewed" ? "live" : "demo"}`}>{r.status.toUpperCase()}</span>
-          </div>
-          <div className="rowflex" style={{ marginTop: 12 }}>
-            <button className="btn sm ghost" onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? "Hide" : "👁 Preview"}</button>
-            <button className="btn sm ghost" onClick={() => copyText(r.body, setMsg)}>📋 Copy Report</button>
-            <button className="btn sm ghost" onClick={() => downloadText(`Chalaak-Dadi-${r.id}.txt`, r.body)}>⬇️ Download</button>
-            <button className="btn sm" onClick={() => toggleStatus(r)}>{r.status === "Reviewed" ? "↩ Mark Unsubmitted" : "✓ Mark Reviewed"}</button>
-          </div>
-          {open === r.id && <pre className="report" style={{ marginTop: 12 }}>{r.body}</pre>}
+    <div className="page-stack reports-page">
+      <section className="page-heading">
+        <div>
+          <p className="eyebrow"><span className="eyebrow-mark" />Human review queue</p>
+          <h1>Complaint drafts</h1>
+          <p className="page-lede">Drafts are generated from recorded call details. They remain unsubmitted until a person reviews the content and chooses what to do next.</p>
         </div>
-      ))}
-    </>
+        <span className="pill demo page-heading-badge">NOT SUBMITTED</span>
+      </section>
+
+      <div className="notice notice-warning"><span><b>Review before use.</b> This prototype is intended for fictional demo data. Verify every indicator and remove personal information before using any real transcript.</span></div>
+      {error && <div className="notice notice-error" role="alert"><span><b>Could not update reports.</b> {error}</span><button className="btn btn-small btn-outline" onClick={load}>Retry</button></div>}
+      {msg && <div className="notice notice-success" role="status">{msg}</div>}
+
+      <section className="card reports-list-card">
+        <div className="reports-toolbar">
+          <div><p className="eyebrow">Saved drafts</p><h2>{loading ? "Loading reports…" : `${reports.length} ${reports.length === 1 ? "draft" : "drafts"}`}</h2></div>
+          <div className="rowflex reports-actions">
+            <label className="sr-only" htmlFor="report-search">Search reports</label>
+            <input id="report-search" placeholder="Search drafts…" value={q} onChange={(event) => setQ(event.target.value)} />
+            <a className="btn btn-outline" href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">Open official portal <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+
+        {loading ? <div className="skeleton">Loading saved drafts…</div> : reports.length === 0 ? (
+          <div className="skeleton">No reports found{q && <> for “{q}”</>}.<br /><span className="small">Open a call record and choose “Generate &amp; Save Draft” to create one.</span></div>
+        ) : (
+          <div className="report-list">
+            {reports.map((report) => (
+              <article className="card report-card" key={report.id}>
+                <div className="spread report-card-heading">
+                  <div><h3>{report.title}</h3><span className="small muted">Created {new Date(report.created_at).toLocaleString("en-IN")} · <Link href={`/calls/${report.call_id}`}>View source call <span aria-hidden="true">→</span></Link></span></div>
+                  <span className={`pill ${report.status === "Reviewed" ? "reviewed" : "demo"}`}>{report.status === "Reviewed" ? "REVIEWED" : "UNSUBMITTED DRAFT"}</span>
+                </div>
+                <div className="rowflex report-actions">
+                  <button className="btn btn-small btn-outline" onClick={() => setOpen(open === report.id ? null : report.id)}>{open === report.id ? "Hide preview" : "Preview draft"}</button>
+                  <button className="btn btn-small btn-outline" onClick={() => copyText(report.body, setMsg)}>Copy</button>
+                  <button className="btn btn-small btn-outline" onClick={() => downloadText(`Chalaak-Dadi-${report.id}.txt`, report.body)}>Download .txt</button>
+                  <button className="btn btn-small" onClick={() => toggleStatus(report)}>{report.status === "Reviewed" ? "Mark unsubmitted" : "Mark reviewed"}</button>
+                </div>
+                {open === report.id && <pre className="report">{report.body}</pre>}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

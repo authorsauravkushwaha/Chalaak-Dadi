@@ -1,4 +1,5 @@
 "use client";
+
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, copyText, downloadText } from "../../../lib/client.js";
@@ -13,89 +14,117 @@ export default function CallDetail({ params }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api(`/api/calls/${id}`).then(setData).catch((e) => setError(e.message));
+    api(`/api/calls/${id}`).then(setData).catch((loadError) => setError(loadError.message));
   }, [id]);
 
-  if (error) return <><div className="err">⚠️ {error}</div><Link className="btn ghost" href="/">← Back to Dashboard</Link></>;
-  if (!data) return <div className="skeleton">Loading call…</div>;
+  if (!data && error) return <div className="page-stack"><div className="notice notice-error" role="alert">{error}</div><Link className="btn btn-outline" href="/">Back to dashboard</Link></div>;
+  if (!data) return <div className="skeleton">Loading call record…</div>;
+
   const { call, Audit } = data;
-  const r = riskLevel(call.risk_score);
+  const risk = riskLevel(call.risk_score);
   const preview = report || generateComplaint(call, call.entities);
+  const isDemo = call.source === "demo";
 
   async function makeReport() {
-    setBusy(true); setMsg("");
+    setBusy(true);
+    setMsg("");
     try {
-      const { report: rep } = await api(`/api/calls/${id}/report`, { method: "POST" });
-      setReport(rep.body);
-      setMsg("✅ Complaint draft generated and saved under Reports. It is UNSUBMITTED — nothing has been sent to any authority.");
-    } catch (e) { setError(e.message); }
+      const { report: savedReport } = await api(`/api/calls/${id}/report`, { method: "POST" });
+      setReport(savedReport.body);
+      setMsg("Complaint draft generated and saved under Reports. It is unsubmitted; nothing was sent to an authority.");
+      setError("");
+    } catch (reportError) {
+      setError(reportError.message);
+    }
     setBusy(false);
   }
 
   return (
-    <>
-      <Link href="/" className="small">← Dashboard</Link>
-      <div className="spread" style={{ marginTop: 8 }}>
-        <h1>📞 Call Detail</h1>
-        <span>
-          <span className={`pill ${call.status}`} style={{ marginRight: 8 }}>{call.status.toUpperCase()}</span>
-          {call.source === "demo" && <span className="pill demo">DEMO / SIMULATED</span>}
-        </span>
-      </div>
-      <p className="sub mono small">{call.id}</p>
-      {msg && <div className="ok">{msg}</div>}
-
-      <div className="grid g4" style={{ marginTop: 14 }}>
-        <div className="card"><div className="statnum" style={{ fontSize: 22 }}>{call.category}</div><div className="statlbl">Scam category</div></div>
-        <div className="card"><div className="statnum" style={{ color: r.color }}>{call.risk_score}/100</div><div className="statlbl">Risk score — {r.label}</div><div className="bar" style={{ marginTop: 8 }}><i style={{ width: `${call.risk_score}%`, background: r.color }} /></div></div>
-        <div className="card"><div className="statnum">{formatDuration(call.duration_sec)}</div><div className="statlbl">Duration {call.source === "demo" && "(simulated)"}</div></div>
-        <div className="card"><div className="statnum" style={{ fontSize: 20 }}>{new Date(call.started_at).toLocaleString("en-IN")}</div><div className="statlbl">Started · Caller: {call.caller || "Unknown"}</div></div>
-      </div>
-
-      <div className="grid g2" style={{ marginTop: 16 }}>
-        <div className="card">
-          <h2>📝 Summary</h2>
-          <p>{call.summary || <span className="muted">No summary recorded for this call yet.</span>}</p>
-          <h2 style={{ marginTop: 20 }}>💬 Transcript {call.source === "demo" && <span className="pill demo">SIMULATED</span>}</h2>
-          {call.transcript ? call.transcript.split("\n").map((line, i) => (
-            <div key={i} className={`bubble ${line.startsWith("Dadi") ? "dadi" : "caller"}`} style={{ marginBottom: 8 }}>{line}</div>
-          )) : <p className="muted">No transcript stored.</p>}
+    <div className="page-stack call-detail-page">
+      <div className="detail-topline">
+        <Link href="/" className="text-link">← Dashboard</Link>
+        <div className="detail-statuses">
+          <span className={`pill ${call.status === "live" ? "in-progress" : "ended"}`}>{call.status === "live" ? "IN PROGRESS" : "ENDED"}</span>
+          {isDemo && <span className="pill demo">SIMULATED RECORD</span>}
         </div>
+      </div>
 
-        <div>
-          <div className="card">
-            <h2>🚨 Extracted entities — why each was flagged</h2>
-            {call.entities.length === 0 && <p className="muted">No indicators were extracted from this call.</p>}
-            {call.entities.map((e) => (
-              <div key={e.id} className="alertitem">
-                <b>{e.type}</b> · <span className="mono">{e.value}</span> <span className="muted">({Math.round(e.confidence * 100)}% confidence)</span>
-                <br /><span className="small">{WHY_FLAGGED[e.type] || "Flagged by the extraction rules."}</span>
-                {e.evidence && <><br /><span className="small muted">Evidence: “{e.evidence}”</span></>}
+      <section className="page-heading">
+        <div><p className="eyebrow">Call record review</p><h1>{call.category}</h1><p className="detail-meta mono">{call.id}</p></div>
+      </section>
+
+      {error && <div className="notice notice-error" role="alert">{error}</div>}
+      {msg && <div className="notice notice-success" role="status">{msg}</div>}
+
+      <div className="grid g4 detail-stats">
+        <article className="card"><div className="statnum detail-category">{call.category}</div><div className="statlbl">Recorded category</div></article>
+        <article className="card">
+          <div className="statnum" style={{ color: risk.color }}>{call.risk_score}<span className="risk-denominator">/100</span></div>
+          <div className="statlbl">Stored risk · {risk.label}</div>
+          <div className="bar risk-bar"><i style={{ width: `${call.risk_score}%`, background: risk.color }} /></div>
+        </article>
+        <article className="card"><div className="statnum">{formatDuration(call.duration_sec)}</div><div className="statlbl">{isDemo ? "Simulated duration" : "Recorded duration"}</div></article>
+        <article className="card"><div className="statnum detail-date">{new Date(call.started_at).toLocaleString("en-IN")}</div><div className="statlbl">Started · {call.caller || "Unknown caller"}</div></article>
+      </div>
+      <p className="risk-footnote">{isDemo ? "Demo risk scores are illustrative scenario values, not validated assessments. A partial script may carry the full scenario score." : "A stored score is not an independently verified assessment."}</p>
+
+      <section className="grid g2 detail-content-grid">
+        <article className="card detail-transcript-card">
+          <div className="card-heading-row"><div><p className="eyebrow">Recorded conversation</p><h2>Summary &amp; transcript</h2></div>{isDemo && <span className="pill demo">FICTIONAL</span>}</div>
+          <p className="detail-summary">{call.summary || <span className="muted">No summary recorded for this call yet.</span>}</p>
+          <h3 className="detail-subheading">Transcript</h3>
+          {call.transcript ? (
+            <div className="detail-transcript">
+              {call.transcript.split("\n").map((line, index) => {
+                const match = line.match(/^(Dadi|Caller):\s*(.*)$/);
+                const isDadi = match?.[1] === "Dadi";
+                return (
+                  <div key={index} className={`bubble ${isDadi ? "dadi" : "caller"}`}>
+                    <small>{isDadi ? "Dadi · scripted response" : isDemo ? "Fictional caller" : match?.[1] || "Transcript entry"}</small>
+                    <span>{match?.[2] || line}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : <p className="empty-inline">No transcript lines were recorded.</p>}
+        </article>
+
+        <div className="detail-side-column">
+          <article className="card">
+            <div className="card-heading-row"><div><p className="eyebrow">Pattern matches</p><h2>Captured indicators</h2></div><span className="subtle-label">{call.entities.length} saved</span></div>
+            {call.entities.length === 0 && <p className="empty-inline">No indicators were extracted from this call.</p>}
+            {call.entities.map((entity) => (
+              <div className="alertitem" key={entity.id}>
+                <b>{entity.type.replaceAll("_", " ")}</b><span className="mono"> · {entity.value}</span><span className="confidence-note">{Math.round(entity.confidence * 100)}% pattern confidence</span>
+                <p>{WHY_FLAGGED[entity.type] || "Flagged by the configured extraction rules."}</p>
+                {entity.evidence && <small>Evidence: “{entity.evidence}”</small>}
               </div>
             ))}
-            <p className="small muted">⚖️ These are <b>indicators / आरोप</b> for verification — not proof that any person committed a crime.</p>
-          </div>
+            <p className="risk-footnote">Indicators require independent verification; a pattern match is not proof that any person committed a crime.</p>
+          </article>
 
-          <div className="card" style={{ marginTop: 16 }}>
-            <h2>🕐 Audit timeline</h2>
-            {Audit.length === 0 ? <p className="muted small">No Audit recorded.</p> : (
-              <ul className="timeline">{Audit.map((a) => <li key={a.id}><b>{new Date(a.created_at).toLocaleString("en-IN")}</b> — {a.event_type} {a.detail && <span>· {a.detail}</span>}</li>)}</ul>
+          <article className="card audit-card">
+            <div className="card-heading-row"><div><p className="eyebrow">Record history</p><h2>Audit timeline</h2></div></div>
+            {Audit.length === 0 ? <p className="empty-inline">No audit events recorded.</p> : (
+              <ul className="timeline">
+                {Audit.map((event) => <li key={event.id}><time dateTime={new Date(event.created_at).toISOString()}>{new Date(event.created_at).toLocaleString("en-IN")}</time><span>{event.event_type}{event.detail && <> · {event.detail}</>}</span></li>)}
+              </ul>
             )}
-          </div>
+          </article>
         </div>
-      </div>
+      </section>
 
-      <div className="card" style={{ marginTop: 16 }}>
-        <div className="spread"><h2 style={{ margin: 0 }}>📄 Complaint draft preview</h2><span className="pill demo">UNSUBMITTED DRAFT</span></div>
-        <p className="small muted">Generated only from evidence recorded above. This system has <b>not</b> contacted police, frozen any account, verified criminal activity, or filed anything.</p>
+      <section className="card draft-section">
+        <div className="section-heading"><div><p className="eyebrow">Human review required</p><h2>Complaint draft preview</h2></div><span className="pill demo">UNSUBMITTED DRAFT</span></div>
+        <p className="muted">Generated from the evidence recorded above. This system has not contacted police, frozen an account, verified criminal activity, or filed anything.</p>
         <pre className="report">{preview}</pre>
-        <div className="rowflex">
-          <button className="btn" onClick={makeReport} disabled={busy}>{busy ? "Generating…" : "⚙️ Generate & Save Draft"}</button>
-          <button className="btn ghost" onClick={() => copyText(preview, setMsg)}>📋 Copy Report</button>
-          <button className="btn ghost" onClick={() => downloadText(`Chalaak-Dadi-complaint-${call.id}.txt`, preview)}>⬇️ Download Report (.txt)</button>
-          <a className="btn green" href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">🌐 Open Official Portal (cybercrime.gov.in)</a>
+        <div className="rowflex draft-actions">
+          <button className="btn" onClick={makeReport} disabled={busy}>{busy ? "Generating…" : "Generate & save draft"}</button>
+          <button className="btn btn-outline" onClick={() => copyText(preview, setMsg)}>Copy report</button>
+          <button className="btn btn-outline" onClick={() => downloadText(`Chalaak-Dadi-complaint-${call.id}.txt`, preview)}>Download .txt</button>
+          <a className="btn btn-green" href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">Open official portal <span aria-hidden="true">↗</span></a>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

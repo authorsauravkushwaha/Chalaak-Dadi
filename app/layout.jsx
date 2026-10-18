@@ -1,9 +1,10 @@
 import "./globals.css";
 import Link from "next/link";
+import Navigation from "./components/navigation.jsx";
 
 export const metadata = {
-  title: "Chalaak Dadi — Scam Intelligence Console | SK Nexora",
-  description: "AI-powered scam intelligence & financial fraud awareness prototype. Team SK Nexora, Srijan Setu 2026.",
+  title: "Chalaak Dadi — Cybersecurity Intelligence Console",
+  description: "An honest, interactive scam-awareness simulation by Team SK Nexora. Fictional scenarios, transparent indicators, and records for human review.",
 };
 
 export default function RootLayout({ children }) {
@@ -11,22 +12,20 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <header className="topbar">
-          <Link className="brand" href="/">
-            <span className="logo">👵</span>
-            <span><b>Chalaak Dadi</b><small>Scam Intelligence Console</small></span>
-          </Link>
-          <span className="demobadge">🟠 DEMO MODE — Simulated Data</span>
-          <nav className="main">
-            <Link href="/">Dashboard</Link>
-            <Link href="/live">🔴 Live Intelligence</Link>
-            <Link href="/reports">Reports</Link>
-            <Link href="/about">About &amp; Methodology</Link>
-          </nav>
+          <div className="topbar-inner">
+            <Link className="brand" href="/" aria-label="Chalaak Dadi dashboard">
+              <span className="brand-mark" aria-hidden="true"><span>D</span><i /></span>
+              <span className="brand-copy"><b>Chalaak Dadi</b><small>Cybersecurity intelligence</small></span>
+            </Link>
+            <div className="workspace-status"><span className="status-dot" />Simulation workspace</div>
+            <Navigation />
+          </div>
         </header>
         <main className="wrap">{children}</main>
-        <footer>
-          Chalaak Dadi — built by <b>Team SK Nexora</b> for <b>Srijan Setu 2026</b> · All demo records use entirely fictional data ·
-          Extracted details are indicators (संकेत) requiring verification, never proof of guilt · In a real emergency call <b>1930</b> or visit cybercrime.gov.in
+        <footer className="site-footer">
+          <p><b>Chalaak Dadi</b> · Team SK Nexora · Srijan Setu 2026</p>
+          <p>Prototype only. No real calls are made or reports filed. Extracted indicators need human verification and are not proof of guilt.</p>
+          <p>In a real cyber-fraud emergency in India, call <a href="tel:1930">1930</a> or visit <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">cybercrime.gov.in</a>.</p>
         </footer>
       </body>
     </html>
