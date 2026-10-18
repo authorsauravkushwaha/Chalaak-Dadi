@@ -1,19 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
-export default function Error({ error, reset }) {
+export default function GlobalError({ error, reset }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
-    <div className="page-stack error-page">
-      <section className="card error-panel">
-        <p className="eyebrow">Unexpected application error</p>
-        <h1>We couldn&apos;t load this view.</h1>
-        <p className="page-lede">{error?.message || "An unexpected error occurred while loading this page."}</p>
-        <div className="rowflex">
-          <button className="btn" onClick={() => reset()}>Try again</button>
-          <Link className="btn btn-outline" href="/">Back to dashboard</Link>
+    <div className="center-screen" style={{ minHeight: "80vh" }} lang="en">
+      <div>
+        <div className="error-code">!</div>
+        <h1>Something went wrong</h1>
+        <p>An error occurred while rendering this page. Your data is safe — please try again.</p>
+        <div className="rowflex" style={{ justifyContent: "center" }}>
+          <button className="btn btn-primary" onClick={reset}>↺ Retry</button>
+          <Link className="btn btn-outline" href="/en">Go home</Link>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
