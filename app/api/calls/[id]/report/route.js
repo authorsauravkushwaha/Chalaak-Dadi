@@ -3,7 +3,7 @@ import { json, fail } from "../../../../../lib/server.js";
 import { rateLimit, rateLimitResponse, LIMITERS } from "../../../../../lib/ratelimit.js";
 export const dynamic = "force-dynamic";
 // POST /api/calls/:id/report — generate (and save) an unsubmitted complaint draft
-export async function POST(_req, { params }) {
+export async function POST(req, { params }) {
   try {
   const limit = rateLimit(req, "report-write", LIMITERS.write);
   if (!limit.ok) return rateLimitResponse(limit);
