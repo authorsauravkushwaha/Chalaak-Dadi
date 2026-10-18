@@ -1,9 +1,13 @@
 import { getCall, endCall } from "../../../../../lib/db.js";
 import { json, fail, readJson } from "../../../../../lib/server.js";
 import { validateEndInput } from "../../../../../lib/intel.js";
+import { rateLimit, rateLimitResponse, LIMITERS } from "../../../../../lib/ratelimit.js";
 export const dynamic = "force-dynamic";
 export async function POST(req, { params }) {
   try {
+  const limit = rateLimit(req, "demo-end", LIMITERS.write);
+  if (!limit.ok) return rateLimitResponse(limit);
+
     const { id } = await params;
     const call = await getCall(id);
     if (!call) return fail("Call not found.", 404);
