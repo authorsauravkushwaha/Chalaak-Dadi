@@ -1,0 +1,65 @@
+{
+  "name": "Chalaak Dadi — ingest a call (webhook → API)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Chalaak-Dadi/call",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Webhook — incoming call event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CHALAAK_DADI_URL }}/api/calls",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-ingest-secret", "value": "={{ $env.CHALAAK_DADI_INGEST_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"category\": \"{{ $json.body.category || 'Other / Unknown' }}\",\n  \"risk_score\": {{ $json.body.risk_score || 0 }},\n  \"caller\": \"{{ $json.body.caller || '' }}\",\n  \"summary\": \"{{ $json.body.summary || '' }}\",\n  \"client_event_id\": \"{{ $json.body.client_event_id || $execution.id }}\"\n}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Create call in Chalaak Dadi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, call: $json.call, duplicate: $json.duplicate }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Respond to webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Webhook — incoming call event": {
+      "main": [[{ "node": "Create call in Chalaak Dadi", "type": "main", "index": 0 }]]
+    },
+    "Create call in Chalaak Dadi": {
+      "main": [[{ "node": "Respond to webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "Before activating: (1) deploy Chalaak Dadi and set INGEST_SECRET in Vercel; (2) in n8n set env CHALAAK_DADI_URL=https://<your-app>.vercel.app and CHALAAK_DADI_INGEST_SECRET=<same secret> (or replace the expressions with credential fields); (3) POST a test event to the webhook URL with JSON {\"category\":\"Digital Arrest\",\"risk_score\":80,\"caller\":\"+91 90000 00000 (fictional)\",\"client_event_id\":\"n8n-test-1\"} — sending it twice must return duplicate:true the second time. Extend with nodes that POST extracted entities to /api/calls/<id>/entities and finish via /api/calls/<id>/end. See docs/INTEGRATIONS.md."
+  }
+}

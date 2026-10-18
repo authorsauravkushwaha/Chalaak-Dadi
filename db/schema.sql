@@ -40,3 +40,4 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS idx_entities_call ON entities(call_id);
 CREATE INDEX IF NOT EXISTS idx_audit_call ON Audit(call_id);
+CREATE INDEX IF NOT EXISTS idx_reports_call ON reports(call_id);

@@ -1,5 +1,5 @@
 import { listCalls, createCall } from "../../../lib/db.js";
-import { json, fail, checkIngestSecret } from "../../../lib/server.js";
+import { json, fail, checkIngestSecret, readJson } from "../../../lib/server.js";
 import { validateCallInput } from "../../../lib/intel.js";
 export const dynamic = "force-dynamic";
 // GET /api/calls?q=&category=&status=
@@ -13,7 +13,7 @@ export async function GET(req) {
 export async function POST(req) {
   const denied = checkIngestSecret(req); if (denied) return denied;
   try {
-    const body = await req.json();
+    const { body, response } = await readJson(req); if (response) return response;
     const errors = validateCallInput(body);
     if (errors.length) return fail(errors.join("; "));
     const { call, duplicate } = await createCall({ ...body, source: "live" });

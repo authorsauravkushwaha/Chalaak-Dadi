@@ -1,7 +1,11 @@
 node_modules/
 .next/
+.vercel/
+out/
 .env
 .env.local
 .env*.local
-data/store.json
+data/
 *.log
+coverage/
+*.corrupt-*

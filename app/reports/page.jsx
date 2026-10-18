@@ -9,13 +9,19 @@ export default function Reports() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [open, setOpen] = useState(null);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const load = useCallback(async () => {
-    try { const d = await api(`/api/reports?q=${encodeURIComponent(q)}`); setReports(d.reports); setError(""); }
+    try { const d = await api(`/api/reports?q=${encodeURIComponent(debouncedQ)}`); setReports(d.reports); setError(""); }
     catch (e) { setError(e.message); }
     setLoading(false);
-  }, [q]);
+  }, [debouncedQ]);
   useEffect(() => { load(); }, [load]);
 
   async function toggleStatus(r) {

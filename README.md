@@ -43,7 +43,10 @@ Run the automatic tests any time with: `npm test`
 | `app/reports/page.jsx` | Searchable list of complaint drafts |
 | `app/about/page.jsx` | Problem, methodology, limitations, privacy |
 | `app/api/...` | The server-side API (create calls, add entities, end calls, stats, reports, demo) — see `docs/API.md` |
-| `lib/db.js` | Talks to the database. Uses **PostgreSQL** if `DATABASE_URL` is set, otherwise a local demo file so the app always runs |
+| `lib/db.js` | Talks to the database. Uses **PostgreSQL** if `DATABASE_URL` (or `POSTGRES_URL` etc.) is set, otherwise a local demo file so the app always runs |
+| `app/api/health` | One-click deployment check: reports whether storage is persistent PostgreSQL or ephemeral demo mode |
+| `docs/PERSISTENCE.md` | Why data resets on Vercel without a database, and the 5-minute Neon fix with troubleshooting |
+| `docs/INTEGRATIONS.md` | How the suggested reference projects (n8n, Appwrite, Pentagi, MiroFish) relate — includes an importable n8n workflow in `examples/n8n/` |
 | `lib/intel.js` | The "brain rules": finds UPI IDs / accounts / amounts in text, scoring, complaint-draft writer, input validation |
 | `lib/scenarios.js` | The 3 fictional story-scripts (Digital Arrest, Parcel/Customs, SIM-KYC) |
 | `db/schema.sql` | The PostgreSQL database design (calls, entities, Audit, reports) |
@@ -52,8 +55,12 @@ Run the automatic tests any time with: `npm test`
 ## 3) What works / what is incomplete
 
 ✅ **Works:** full navigation; database-backed calls/entities/Audit/reports; 3 seeded fictional cases;
-live simulated demo that saves real database records; dashboard filters + search + auto-refresh (dedupe-safe);
-protected ingestion API with idempotency; complaint draft copy/download; official-portal link; responsive premium UI; tests + production build pass.
+live simulated demo that saves real database records (only the lines actually played are saved);
+dashboard filters + debounced search + race-safe auto-refresh; storage banner + `/api/health` showing
+persistent-vs-ephemeral mode; protected ingestion API with timing-safe secret check and idempotency;
+malformed JSON returns 400 (never 500); complaint draft copy/download; official-portal link;
+responsive premium UI; expanded tests (extraction edge cases + full create→report DB flow),
+GitHub Actions CI, and production build all pass.
 
 ⚠️ **Deliberately incomplete (labelled in-app as "Demo Adapter"):** real telephony and a real Hindi AI voice
 (no provider connected), ML-based extraction (currently honest rule-based patterns), and user login/roles.
@@ -61,16 +68,22 @@ These plug into the same API contracts later — see the About page's future pla
 
 ## 4) Deploy (beginner-friendly, free tiers)
 
+> 💾 **One honest note on persistence:** without a database, demo data on Vercel lives in
+> **temporary server memory** and may reset to the 3 seed cases when Vercel recycles an
+> instance — perfectly fine for judging. For permanent data, do step 3–4 below
+> (full guide + troubleshooting: [`docs/PERSISTENCE.md`](docs/PERSISTENCE.md)).
+
 1. Push this repo to GitHub (already done if you're reading this there).
-2. Go to **vercel.com → New Project → Import** this repository. Framework auto-detects as **Next.js**. Click Deploy — the app already works at this point using the built-in demo store.
-3. **(Recommended) Add real PostgreSQL:** create a free database at **neon.tech**, copy its connection string.
-4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` (from Neon) and `INGEST_SECRET` (invent a long random password). Redeploy. Tables are created automatically on first use.
-5. Open your `*.vercel.app` link and repeat the click-tour above.
+2. Go to **vercel.com → New Project → Import** this repository. Framework auto-detects as **Next.js**. Click Deploy — the app already works at this point using the built-in (ephemeral) demo store.
+3. **(Recommended) Add real PostgreSQL:** create a free database at **neon.tech**, copy its connection string. (Vercel's built-in Neon integration also works — the app accepts `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, `DATABASE_URL_UNPOOLED` or `NEON_DATABASE_URL`.)
+4. In Vercel → Project → Settings → Environment Variables, add `DATABASE_URL` (from Neon) and `INGEST_SECRET` (a long random value, e.g. `openssl rand -hex 32`). Apply to **Production** and **Redeploy** — env vars only take effect on a new deployment. Tables are created automatically on first use.
+5. **Verify:** open `https://<your-app>.vercel.app/api/health` — it must say `"mode":"postgres","persistent":true`. If it says `"ephemeral"`, the variable isn't reaching the app yet (wrong environment or missing redeploy — see `docs/PERSISTENCE.md`).
+6. Open your `*.vercel.app` link and repeat the click-tour above.
 
 ## 5) Configure secrets safely
 
 - Secrets live **only** in environment variables (`.env.local` locally, Vercel dashboard when deployed) — see `.env.example`. They are never in code, never in the browser, and `.env*` files are git-ignored. **Never paste them into GitHub.**
-- `INGEST_SECRET`: required in the header `x-ingest-secret` for the live-ingestion API. If it is not set, ingestion safely stays **disabled** (the demo still works).
+- `INGEST_SECRET`: required in the header `x-ingest-secret` for the live-ingestion API. If it is not set, too short, or still the example placeholder, ingestion safely stays **disabled** (the demo still works). The check uses a timing-safe comparison.
 - Rotate any secret immediately if it is ever shared by mistake.
 
 ## 6) Hackathon judge test-checklist (3 minutes)
@@ -80,7 +93,8 @@ These plug into the same API contracts later — see the About page's future pla
 - [ ] `/live` → Start Demo → alerts capture a UPI ID → End Demo → record appears on Dashboard
 - [ ] Open the call → each entity explains *why* it was flagged → Generate draft → Copy & Download work
 - [ ] Reports page → draft is marked **Unsubmitted** → mark Reviewed → Open Official Portal goes to cybercrime.gov.in
-- [ ] API safety: `curl -X POST localhost:3000/api/calls -d '{}'` (no secret) is rejected
+- [ ] API safety: `curl -X POST localhost:3000/api/calls -d '{}'` (no secret) is rejected; malformed JSON returns 400, not 500
+- [ ] Storage honesty: `/api/health` and the Dashboard banner state whether data is persistent or ephemeral
 - [ ] Resize to mobile width — layout still reads clearly
 
 ---
